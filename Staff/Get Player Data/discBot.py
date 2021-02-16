@@ -26,10 +26,25 @@ client = commands.Bot(command_prefix = 's!')
 async def on_ready():
     await client.change_presence(activity=discord.Game(name="s!help"))
     print("Bot is ready for bannings!")
+@client.event
+async def on_message(ctx):
+    if str(ctx.author.id)  == '349436498199707648' and ctx.content == 's!stop':
+        await client.logout()
+        print("Logging out: s!stop")
+    else:
+        print(ctx.author.id, ctx.content)
 #ping commad
 @client.command()
 async def ping(ctx):
     await ctx.send(f'Pong! {round(client.latency * 1000)}ms')
+wealthGo = 0
+@client.command()
+async def stopwealth(ctx):
+    global wealthGo
+    if wealthGo == 0:
+        wealthGo = 1
+    elif wealthGo != 0:
+        await ctx.send("Stop wealth loop already in progess")
 @client.command()
 async def wealthloop(ctx, *, arg):
     def getOnlineServer(userID):
@@ -61,14 +76,22 @@ async def wealthloop(ctx, *, arg):
                     break
         return usersWealth
     users = arg.replace(' ','').split(',')
-    for i in range(100):
-        wealth = f'{getUserWealth(users, getOnlineServer(users))} \n loop {i}/100'
-        embed = discord.Embed(
-                title = f'Wealth of uID {arg}',
-                description =  f'**{wealth}**'
-            ) 
-        await ctx.send(embed=embed)
-        time.sleep(3)
+    i = 0
+    while True:
+        global wealthGo
+        if wealthGo == 0:
+            i += 1
+            wealth = f'{getUserWealth(users, getOnlineServer(users))} \n loop {i}'
+            embed = discord.Embed(
+                    title = f'Wealth of uID {arg}',
+                    description =  f'**{wealth}**'
+                ) 
+            await ctx.send(embed=embed)
+            time.sleep(3)
+        elif wealthGo != 0:
+            await ctx.send("Stopping wealth loop!")
+            wealthGo = 0
+            break
 
 @client.command()
 async def userinv(ctx, *, arg):
@@ -84,7 +107,6 @@ async def userinv(ctx, *, arg):
                 ) 
         for key in dict['data']['inventory'].keys():
             objName = re.sub(r"(<.*?>)","",dict['data']['inventory'][key]['name'])
-            print(objName)
             embed.add_field(name = objName, value = dict['data']['inventory'][key]['amount'], inline= True)
         await ctx.send(embed=embed)
 
