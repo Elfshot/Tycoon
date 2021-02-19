@@ -6,6 +6,11 @@ import re
 from bs4  import BeautifulSoup, Comment
 import json
 import time
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 APIkey = 'KbOykLziDIJSFzIial5LcaYE4ukGeHE2BV58Y'
 serversList = [
     'http://server.tycoon.community:30120/status', 'http://server.tycoon.community:30122/status',
@@ -13,12 +18,11 @@ serversList = [
     'http://server.tycoon.community:30125/status','http://na.tycoon.community:30120/status',
     'http://na.tycoon.community:30122/status','http://na.tycoon.community:30123/status',
     'http://na.tycoon.community:30124/status','http://na.tycoon.community:30125/status']
-logger = logging.getLogger('discord')
-logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
-
+def getAlive():
+    for i in range(10):
+        serv = req.get(f'{serversList[i]}/alive')
+        if serv.status_code == 204:
+            return serversList[i]
 #Client start
 client = commands.Bot(command_prefix = 's!')
 #ready message
@@ -26,13 +30,6 @@ client = commands.Bot(command_prefix = 's!')
 async def on_ready():
     await client.change_presence(activity=discord.Game(name="s!help"))
     print("Bot is ready for bannings!")
-@client.event
-async def on_message(ctx):
-    if str(ctx.author.id)  == '349436498199707648' and ctx.content == 's!stop':
-        await client.logout()
-        print("Logging out: s!stop")
-    else:
-        print(ctx.author.id, ctx.content)
 #ping commad
 @client.command()
 async def ping(ctx):
@@ -97,7 +94,7 @@ async def wealthloop(ctx, *, arg):
 async def userinv(ctx, *, arg):
     users = arg.replace(' ','').split(',')
     for user in users:
-        htmlContent = req.get(f'http://server.tycoon.community:30120/status/dataadv/{user}', headers={"X-Tycoon-Key":APIkey})
+        htmlContent = req.get(f'{getAlive()}/dataadv/{user}', headers={"X-Tycoon-Key":APIkey})
         if htmlContent.status_code != 200:
             await ctx.send(f"Error fetching skills for uID {user}: {htmlContent.text}")
             return
@@ -105,26 +102,39 @@ async def userinv(ctx, *, arg):
         embed = discord.Embed(
                     title = f'Inventory of uID {users}'
                 ) 
-        for key in dict['data']['inventory'].keys():
-            objName = re.sub(r"(<.*?>)","",dict['data']['inventory'][key]['name'])
-            embed.add_field(name = objName, value = dict['data']['inventory'][key]['amount'], inline= True)
-        await ctx.send(embed=embed)
+        try:
+            for key in dict['data']['inventory'].keys():
+                objName = re.sub(r"(<.*?>)","",dict['data']['inventory'][key]['name'])
+                embed.add_field(name = objName, value = dict['data']['inventory'][key]['amount'], inline= True)
+            await ctx.send(embed=embed)
+        except AttributeError:
+            print(dict)
+            await ctx.send("Big error") 
 
 @client.command()
 async def userskills(ctx, *, arg):
     users = arg.replace(' ','').split(',')
     for user in users:
-        htmlContent = req.get(f'http://server.tycoon.community:30120/status/dataadv/{user}', headers={"X-Tycoon-Key":APIkey})
+        htmlContent = req.get(f'{getAlive()}/dataadv/{user}', headers={"X-Tycoon-Key":APIkey})
         if htmlContent.status_code != 200:
             await ctx.send(f"Error fetching skills for uID {user}: {htmlContent.text}")
             return
         dict = htmlContent.json()
-        embed = discord.Embed(title = f'Skills of uID {user}') 
-        for key in dict['data']['gaptitudes_v'].keys():
-            for item in dict['data']['gaptitudes_v'][key].keys():
-                value = round(int(dict['data']['gaptitudes_v'][key][item]),3)
-                embed.add_field(name = item.capitalize(), value = value, inline= True)
-        await ctx.send(embed=embed)
+        try:
+            embed = discord.Embed(title = f'Skills of uID {user}') 
+            for key in dict['data']['gaptitudes_v'].keys():
+                for item in dict['data']['gaptitudes_v'][key].keys():
+                    value = round(int(dict['data']['gaptitudes_v'][key][item]),3)
+                    embed.add_field(name = item.capitalize(), value = value, inline= True)
+            await ctx.send(embed=embed)
+        except KeyError:
+            print(dict)
+            await ctx.send("Big error")
 
+@client.command()
+async def stop(ctx):
+    if str(ctx.author.id)  == '349436498199707648':
+        await client.logout()
+        print("Logging out: s!stop")
 #if file is not present or does not have token it will break
 client.run(open('token.txt','r').read())
