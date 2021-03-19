@@ -1,5 +1,8 @@
 import json
 import requests as req
+from PIL import Image
+
+
 key = open('key.txt','r').read()
 USER_ID = 59504
 print(f"Running check on playerID {USER_ID}")
@@ -111,6 +114,12 @@ def viewReg():
     for ent in largeList[region]:
         print(f"{i}) {ent}")
         i += 1
+    checkInt = int(input("Which of the entries would you like to view? --> ")) - 1
+    # largeList[region]) will access the list needed, any further accessing will take to indiv cords
+    imageFileName = str(largeList[region][checkInt])[1:-1]
+    img = Image.open(f'Images/{region}/{imageFileName}.jpg')
+    img.show()
+    
     input("Enter any key to continue")
 
 while True:
@@ -126,3 +135,12 @@ while True:
         localRunner(onlineServer())
     elif operation == 3:
         removeEnt()
+
+
+
+
+
+
+#TODO perhaps add direct screenshot support? 
+#TODO make the interactive map with points per exp boost?
+#TODO TSP of all points to find a route and get optimal boost findings
