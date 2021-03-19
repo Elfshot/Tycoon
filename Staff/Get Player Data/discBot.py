@@ -6,6 +6,7 @@ import re
 from bs4  import BeautifulSoup, Comment
 import json
 import time
+import math
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
@@ -91,7 +92,7 @@ async def wealthloop(ctx, *, arg):
             break
 
 @client.command()
-async def userinv(ctx, *, arg):
+async def inv(ctx, *, arg):
     users = arg.replace(' ','').split(',')
     for user in users:
         htmlContent = req.get(f'{getAlive()}/dataadv/{user}', headers={"X-Tycoon-Key":APIkey})
@@ -112,7 +113,7 @@ async def userinv(ctx, *, arg):
             await ctx.send("Big error") 
 
 @client.command()
-async def userskills(ctx, *, arg):
+async def skills(ctx, *, arg):
     users = arg.replace(' ','').split(',')
     for user in users:
         htmlContent = req.get(f'{getAlive()}/dataadv/{user}', headers={"X-Tycoon-Key":APIkey})
@@ -125,6 +126,7 @@ async def userskills(ctx, *, arg):
             for key in dict['data']['gaptitudes_v'].keys():
                 for item in dict['data']['gaptitudes_v'][key].keys():
                     value = round(int(dict['data']['gaptitudes_v'][key][item]),3)
+                    value = str(math.floor((math.sqrt(1 + 8 * value / 5) - 1) / 2)) + f" ({str(value)})"
                     embed.add_field(name = item.capitalize(), value = value, inline= True)
             await ctx.send(embed=embed)
         except KeyError:
@@ -134,7 +136,7 @@ async def userskills(ctx, *, arg):
 @client.command()
 async def stop(ctx):
     if str(ctx.author.id)  == '349436498199707648':
+        await ctx.send("Logging out: a!stop")
         await client.logout()
-        print("Logging out: s!stop")
 #if file is not present or does not have token it will break
 client.run(open('token.txt','r').read())
