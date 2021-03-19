@@ -1,12 +1,13 @@
 import json
+import time
+import cv2
+import os
+import pyautogui
+import numpy as np
 import requests as req
 from PIL import Image
-
-
 key = open('key.txt','r').read()
 USER_ID = 59504
-print(f"Running check on playerID {USER_ID}")
-
 #List of server route starters
 serversList = [
     'http://server.tycoon.community:30120/status', 'http://server.tycoon.community:30122/status',
@@ -16,6 +17,7 @@ serversList = [
 
 
 def onlineServer():
+    print(f"Running check on playerID {USER_ID}")
     server = ""
     for i in range(len(serversList)):
         data = req.get(f'{serversList[i]}/players.json')
@@ -28,7 +30,7 @@ def onlineServer():
     return server
 
 def saveFile(savingFile):
-    with open('test.json', 'w') as outfile:
+    with open('Locations.json', 'w') as outfile:
         json.dump(savingFile, outfile)
 
 
@@ -45,51 +47,49 @@ def localRunner(server):
             allCords = playerLocData[i][6]
             currentCords = allCords[1]
             print(currentCords, "Is the current player cords")
-            location = input("Enter the boost location -->  ").lower()
-            if "y" in input(f"Is boost location of {location} at x={currentCords[1]} and y={currentCords[2]} correct? Y or N -->   ").lower():
-                with open('test.json') as json_file:
-                    largeList = json.load(json_file)
-                try:
-                    largeList[location]
-                except KeyError:
-                    largeList.update({location: [[currentCords[1],currentCords[2],currentCords[3]]]})
-                    saveFile(largeList)
-                    print("New location saved!")
-                    return
-                for saved_local in largeList[location]:
-                    passes = 0
-                    for player_cord in allCords:
-                        xIncD = saved_local[0] + 10
-                        xIncU = saved_local[0] - 10
-                        yIncD = saved_local[1] + 10
-                        yIncU = saved_local[1] - 10
-                        if player_cord[1] <= xIncD and player_cord[1] >= xIncU and player_cord[2] <= yIncD and player_cord[2] >= yIncU:
-                            print("Location already logged")
-                            passes += 1
-                            break
+            with open('Locations.json') as json_file:
+                largeList = json.load(json_file)
+            i = 1
+            for ent in largeList:
+                print(f"{i}) {ent}")
+                i += 1
+            location = list(largeList.keys())[int(input("Which of the above regions will you add to --> ")) - 1]
+            
+            passes = 0
+            for saved_local in largeList[location]:
+                for player_cord in allCords:
+                    xIncD = saved_local[0] + 10
+                    xIncU = saved_local[0] - 10
+                    yIncD = saved_local[1] + 10
+                    yIncU = saved_local[1] - 10
+                    if player_cord[1] <= xIncD and player_cord[1] >= xIncU and player_cord[2] <= yIncD and player_cord[2] >= yIncU:
+                        print("Location already logged")
+                        passes += 1
+                        break
 
-                if passes == 0:
-                    print(largeList)
-                    newList = [currentCords[1],currentCords[2],currentCords[3]]
-                    largeList[location].append(newList)
-                    print(newList, "added!")
-                    break
+            if passes == 0:
+                if len(largeList[location]) == 0:
+                    os.mkdir(f"Images/{location}")
+                newList = [currentCords[1],currentCords[2],currentCords[3]]
+                largeList[location].append(newList)
+                print(f"{newList} added to {location.title()}!")
+                screencap(f"{location}/{currentCords[1],currentCords[2],currentCords[3]}")
+                saveFile(largeList)
+                break
 
-            else:
-                print("ya messed up")
         break
 def removeEnt():
-    with open('test.json') as json_file:
+    with open('Locations.json') as json_file:
         largeList = json.load(json_file)
     print("Regions")
     i = 1
     for ent in largeList:
-        print(f"{i}) {ent}")
+        print(f"{i}) {ent.title()}")
         i += 1
     region = list(largeList.keys())[int(input("Enter the region where you want to remove a value --> ")) - 1]
     i = 1
     for ent in largeList[region]:
-        print(f"{i}) {ent}")
+        print(f"{i}) {ent.title()}")
         i += 1
     
     removeInt = int(input("Which of the entries would you like to remove? --> ")) - 1
@@ -102,25 +102,42 @@ def removeEnt():
         saveFile(largeList)
 
 def viewReg():
-    with open('test.json') as json_file:
+    with open('Locations.json') as json_file:
         largeList = json.load(json_file)
     print("Regions")
     i = 1
     for ent in largeList:
-        print(f"{i}) {ent}")
+        print(f"{i}) {ent.title()}")
         i += 1
     region = list(largeList.keys())[int(input("Enter the region you want to view --> ")) - 1]
     i = 1
     for ent in largeList[region]:
         print(f"{i}) {ent}")
         i += 1
-    checkInt = int(input("Which of the entries would you like to view? --> ")) - 1
-    # largeList[region]) will access the list needed, any further accessing will take to indiv cords
-    imageFileName = str(largeList[region][checkInt])[1:-1]
-    img = Image.open(f'Images/{region}/{imageFileName}.jpg')
-    img.show()
+    if len(largeList[region]) > 0:
+        checkInt = int(input("Which of the entries would you like to view? --> ")) - 1
+        # largeList[region]) will access the list needed, any further accessing will take to indiv cords
+        imageFileName = str(largeList[region][checkInt])[1:-1]
+        img = Image.open(f'Images/{region}/({imageFileName}).jpg')
+        img.show()
+    else:
+        print(f"No boosts found for {region.title()}")
     
     input("Enter any key to continue")
+
+
+def screencap(screenshotDir):
+    if "y" in input("Do you want to take a screenshot? (Y / N) --> ").lower():
+        image = pyautogui.screenshot() 
+        image = cv2.cvtColor(np.array(image), 
+                                cv2.COLOR_RGB2BGR) 
+        cv2.imwrite(f"Images/{screenshotDir}.jpg", image) 
+
+
+def backup():
+    orgin = open('Locations.json', "r").read()
+    new = open(f"Backups/Locations-{time.time()}.json", "w")
+    new.write(orgin)
 
 while True:
     operation = int(input("""
@@ -132,15 +149,13 @@ while True:
     if operation == 1:
         viewReg()
     elif operation == 2:
+        backup()
         localRunner(onlineServer())
     elif operation == 3:
+        backup()
         removeEnt()
 
 
 
-
-
-
-#TODO perhaps add direct screenshot support? 
 #TODO make the interactive map with points per exp boost?
 #TODO TSP of all points to find a route and get optimal boost findings
