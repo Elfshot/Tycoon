@@ -4,7 +4,6 @@ import logging
 import requests as req
 import re
 from bs4  import BeautifulSoup, Comment
-import json
 import time
 import math
 logger = logging.getLogger('discord')
@@ -12,7 +11,8 @@ logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
-APIkey = 'KbOykLziDIJSFzIial5LcaYE4ukGeHE2BV58Y'
+APIkey = open("key.txt", 'r')
+adminID = '349436498199707648'
 serversList = [
     'http://server.tycoon.community:30120/status', 'http://server.tycoon.community:30122/status',
     'http://server.tycoon.community:30123/status','http://server.tycoon.community:30124/status',
@@ -135,7 +135,7 @@ async def skills(ctx, *, arg):
 
 @client.command()
 async def stop(ctx):
-    if str(ctx.author.id)  == '349436498199707648':
+    if str(ctx.author.id)  == adminID:
         await ctx.send("Logging out: a!stop")
         await client.logout()
 #if file is not present or does not have token it will break
